@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(mkdir:*)",
+      "Bash(go mod init:*)",
+      "Bash(go mod tidy:*)",
+      "Bash(go get github.com/go-redis/redis/v8)",
+      "Bash(go get github.com/hypermodeinc/ristretto)",
+      "Bash(go get github.com/dgraph-io/ristretto)",
+      "Bash(go get github.com/bluele/gcache)",
+      "Bash(go get github.com/alicebob/miniredis/v2)",
+      "Bash(go get github.com/stretchr/testify)",
+      "Bash(go test ./...)",
+      "Bash(go get github.com/stretchr/testify/assert@v1.10.0)",
+      "Bash(mv:*)",
+      "Bash(find:*)",
+      "Bash(go test -v ./...)"
+    ],
+    "deny": []
+  }
+}

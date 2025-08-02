@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(ls go.mod)",
+      "Bash(go mod init:*)",
+      "Bash(go get github.com/alicebob/miniredis/v2 github.com/go-redis/redis/v8)",
+      "Bash(go get github.com/dgraph-io/ristretto)",
+      "Bash(go get github.com/bluele/gcache)"
+    ],
+    "deny": []
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(go mod init:*)",
+      "Bash(mkdir -p store)",
+      "Bash(mkdir -p cache)",
+      "Bash(go mod tidy)",
+      "Bash(go test ./...)",
+      "Bash(mkdir -p examples)",
+      "Bash(mv example.go examples/)",
+      "Bash(mv interfaces.go utils.go cache/)",
+      "Bash(mkdir -p internal)",
+      "Bash(rm:*)",
+      "Bash(go test ./... -v)"
+    ],
+    "deny": []
+  }
+}

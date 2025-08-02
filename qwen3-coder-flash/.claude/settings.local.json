@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(mkdir -p /Users/xiumu/git/me/go-cache/qwen30/cache)",
+      "Bash(mkdir -p /Users/xiumu/git/me/go-cache/qwen30/cache/redis)",
+      "Bash(mkdir:*)",
+      "Bash(go mod tidy)",
+      "Bash(go test ./cache -v)",
+      "Bash(go get -t github.com/xiumu/go-cache/cache)",
+      "Bash(rm:*)"
+    ],
+    "deny": []
+  }
+}
