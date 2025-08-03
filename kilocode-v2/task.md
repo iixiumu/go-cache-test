@@ -4,11 +4,11 @@
 
 Store和Cacher接口定义已经有了，按以下步骤实现：
 
+- 为Store接口设计统一的单元测试模板，不同后端实现使用一套测试模板
+- 基于Redis实现Store接口，使用 github.com/redis/go-redis/v9，确保通过单元测试
+- 基于Ristretto实现Store接口，使用github.com/dgraph-io/ristretto/v2，确保通过单元测试
 - 为Cacher接口设计单元测试
 - 实现Cacher接口
-- 基于redis/go-redis设计单元测试，然后实现Store接口
-- hypermodeinc/ristretto设计单元测试，然后实现Store接口
-- 基于bluele/gcache设计单元测试，然后实现Store接口
 
 注意以下几点：
 
