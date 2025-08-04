@@ -17,14 +17,9 @@ type RistrettoStore struct {
 }
 
 // NewRistrettoStore 创建新的Ristretto Store
-func NewRistrettoStore() (store.Store, error) {
-	cache, err := ristretto.NewCache(&ristretto.Config[string, interface{}]{
-		NumCounters: 1e7,     // 10M keys
-		MaxCost:     1 << 30, // 1GB
-		BufferItems: 64,      // 64 keys per buffer
-	})
-	if err != nil {
-		return nil, err
+func NewRistrettoStore(cache *ristretto.Cache[string, interface{}]) (store.Store, error) {
+	if cache == nil {
+		return nil, fmt.Errorf("cache cannot be nil")
 	}
 
 	return &RistrettoStore{cache: cache}, nil

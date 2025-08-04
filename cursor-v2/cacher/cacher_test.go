@@ -9,6 +9,7 @@ import (
 	ristrettoStore "go-cache/cacher/store/ristretto"
 
 	"github.com/alicebob/miniredis/v2"
+	"github.com/dgraph-io/ristretto/v2"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -40,7 +41,12 @@ func TestCacherWithRedis(t *testing.T) {
 // TestCacherWithRistretto 测试基于Ristretto的Cacher
 func TestCacherWithRistretto(t *testing.T) {
 	// 创建Ristretto Store
-	store, err := ristrettoStore.NewRistrettoStore()
+	cache, err := ristretto.NewCache(&ristretto.Config[string, interface{}]{
+		NumCounters: 1e7,     // 键跟踪数量
+		MaxCost:     1 << 30, // 最大缓存大小(1GB)
+		BufferItems: 64,      // 缓冲区大小
+	})
+	store, err := ristrettoStore.NewRistrettoStore(cache)
 	if err != nil {
 		t.Fatalf("Failed to create Ristretto store: %v", err)
 	}
