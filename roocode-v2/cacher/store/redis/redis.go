@@ -3,6 +3,8 @@ package redis
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"reflect"
 	"time"
 
 	"go-cache/cacher/store"
@@ -43,23 +45,38 @@ func (r *RedisStore) MGet(ctx context.Context, keys []string, dstMap interface{}
 		return err
 	}
 
-	// 创建一个map来存储结果
-	resultMap := make(map[string]interface{})
+	// 使用反射来处理目标map
+	dstMapValue := reflect.ValueOf(dstMap)
+	if dstMapValue.Kind() != reflect.Ptr || dstMapValue.Elem().Kind() != reflect.Map {
+		return fmt.Errorf("dstMap must be a pointer to a map")
+	}
+
+	// 获取map的类型信息
+	mapType := dstMapValue.Elem().Type()
+	keyType := mapType.Key()
+	valueType := mapType.Elem()
+
+	// 创建新的map
+	newMap := reflect.MakeMap(mapType)
 
 	// 处理结果
 	for i, key := range keys {
 		if result[i] != nil {
-			var value interface{}
-			if err := json.Unmarshal([]byte(result[i].(string)), &value); err != nil {
+			// 创建对应类型的值
+			value := reflect.New(valueType)
+
+			// 反序列化JSON到值
+			if err := json.Unmarshal([]byte(result[i].(string)), value.Interface()); err != nil {
 				return err
 			}
-			resultMap[key] = value
+
+			// 将键值对添加到map中
+			newMap.SetMapIndex(reflect.ValueOf(key).Convert(keyType), value.Elem())
 		}
 	}
 
 	// 将结果复制到目标map
-	dstMapValue := dstMap.(*map[string]interface{})
-	*dstMapValue = resultMap
+	dstMapValue.Elem().Set(newMap)
 
 	return nil
 }

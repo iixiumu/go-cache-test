@@ -5,8 +5,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alicebob/miniredis/v2"
-	"github.com/redis/go-redis/v9"
+	"go-cache/cacher/store"
+
+	miniredis "github.com/alicebob/miniredis/v2"
+	redis "github.com/redis/go-redis/v9"
 )
 
 // TestRedisStore 测试RedisStore的实现
@@ -20,16 +22,240 @@ func TestRedisStore(t *testing.T) {
 	})
 
 	// 创建RedisStore
-	store := NewRedisStore(client)
+	s := NewRedisStore(client)
 
-	// 创建StoreTester并运行所有测试
-	tester := &store.StoreTester{
-		NewStore: func() store.Store {
-			return store
-		},
+	// 运行所有测试
+	testGetSet(t, s)
+	testMGet(t, s)
+	testExists(t, s)
+	testMSet(t, s)
+	testDel(t, s)
+	testTTL(t, s, mr)
+}
+
+func testGetSet(t *testing.T, s store.Store) {
+	ctx := context.Background()
+
+	// 测试设置和获取字符串
+	key := "test_key"
+	value := "test_value"
+
+	// 设置值
+	items := map[string]interface{}{key: value}
+	err := s.MSet(ctx, items, 0)
+	if err != nil {
+		t.Fatalf("MSet failed: %v", err)
 	}
 
-	tester.RunAllTests(t)
+	// 获取值
+	var result string
+	found, err := s.Get(ctx, key, &result)
+	if err != nil {
+		t.Fatalf("Get failed: %v", err)
+	}
+	if !found {
+		t.Fatalf("Key not found")
+	}
+	if result != value {
+		t.Fatalf("Expected %s, got %s", value, result)
+	}
+
+	// 测试不存在的键
+	var result2 string
+	found, err = s.Get(ctx, "nonexistent", &result2)
+	if err != nil {
+		t.Fatalf("Get failed: %v", err)
+	}
+	if found {
+		t.Fatalf("Expected key not found")
+	}
+}
+
+func testMGet(t *testing.T, s store.Store) {
+	ctx := context.Background()
+
+	// 设置多个值
+	items := map[string]interface{}{
+		"key1": "value1",
+		"key2": "value2",
+		"key3": "value3",
+	}
+	err := s.MSet(ctx, items, 0)
+	if err != nil {
+		t.Fatalf("MSet failed: %v", err)
+	}
+
+	// 批量获取
+	keys := []string{"key1", "key2", "key3", "nonexistent"}
+	result := make(map[string]string)
+	err = s.MGet(ctx, keys, &result)
+	if err != nil {
+		t.Fatalf("MGet failed: %v", err)
+	}
+
+	// 验证结果
+	if len(result) != 3 {
+		t.Fatalf("Expected 3 results, got %d", len(result))
+	}
+	if result["key1"] != "value1" {
+		t.Fatalf("Expected value1, got %s", result["key1"])
+	}
+	if result["key2"] != "value2" {
+		t.Fatalf("Expected value2, got %s", result["key2"])
+	}
+	if result["key3"] != "value3" {
+		t.Fatalf("Expected value3, got %s", result["key3"])
+	}
+}
+
+func testExists(t *testing.T, s store.Store) {
+	ctx := context.Background()
+
+	// 设置值
+	items := map[string]interface{}{
+		"key1": "value1",
+		"key2": "value2",
+	}
+	err := s.MSet(ctx, items, 0)
+	if err != nil {
+		t.Fatalf("MSet failed: %v", err)
+	}
+
+	// 检查存在性
+	keys := []string{"key1", "key2", "nonexistent"}
+	exists, err := s.Exists(ctx, keys)
+	if err != nil {
+		t.Fatalf("Exists failed: %v", err)
+	}
+
+	// 验证结果
+	if len(exists) != 3 {
+		t.Fatalf("Expected 3 results, got %d", len(exists))
+	}
+	if !exists["key1"] {
+		t.Fatalf("Expected key1 to exist")
+	}
+	if !exists["key2"] {
+		t.Fatalf("Expected key2 to exist")
+	}
+	if exists["nonexistent"] {
+		t.Fatalf("Expected nonexistent key to not exist")
+	}
+}
+
+func testMSet(t *testing.T, s store.Store) {
+	ctx := context.Background()
+
+	// 批量设置
+	items := map[string]interface{}{
+		"key1": "value1",
+		"key2": 42,
+		"key3": true,
+	}
+	err := s.MSet(ctx, items, 0)
+	if err != nil {
+		t.Fatalf("MSet failed: %v", err)
+	}
+
+	// 验证设置的值
+	var result1 string
+	found, err := s.Get(ctx, "key1", &result1)
+	if err != nil || !found || result1 != "value1" {
+		t.Fatalf("Failed to get key1")
+	}
+
+	var result2 int
+	found, err = s.Get(ctx, "key2", &result2)
+	if err != nil || !found || result2 != 42 {
+		t.Fatalf("Failed to get key2")
+	}
+
+	var result3 bool
+	found, err = s.Get(ctx, "key3", &result3)
+	if err != nil || !found || !result3 {
+		t.Fatalf("Failed to get key3")
+	}
+}
+
+func testDel(t *testing.T, s store.Store) {
+	ctx := context.Background()
+
+	// 设置值
+	items := map[string]interface{}{
+		"key1": "value1",
+		"key2": "value2",
+		"key3": "value3",
+	}
+	err := s.MSet(ctx, items, 0)
+	if err != nil {
+		t.Fatalf("MSet failed: %v", err)
+	}
+
+	// 删除部分键
+	keys := []string{"key1", "key2", "nonexistent"}
+	deleted, err := s.Del(ctx, keys...)
+	if err != nil {
+		t.Fatalf("Del failed: %v", err)
+	}
+	if deleted != 2 {
+		t.Fatalf("Expected 2 deleted keys, got %d", deleted)
+	}
+
+	// 验证键已被删除
+	var result string
+	found, err := s.Get(ctx, "key1", &result)
+	if err != nil {
+		t.Fatalf("Get failed: %v", err)
+	}
+	if found {
+		t.Fatalf("Expected key1 to be deleted")
+	}
+
+	found, err = s.Get(ctx, "key2", &result)
+	if err != nil {
+		t.Fatalf("Get failed: %v", err)
+	}
+	if found {
+		t.Fatalf("Expected key2 to be deleted")
+	}
+
+	// 验证未删除的键仍然存在
+	found, err = s.Get(ctx, "key3", &result)
+	if err != nil || !found || result != "value3" {
+		t.Fatalf("Expected key3 to still exist")
+	}
+}
+
+func testTTL(t *testing.T, s store.Store, mr *miniredis.Miniredis) {
+	ctx := context.Background()
+
+	// 设置带TTL的值
+	key := "ttl_key"
+	value := "ttl_value"
+	items := map[string]interface{}{key: value}
+	err := s.MSet(ctx, items, time.Second)
+	if err != nil {
+		t.Fatalf("MSet failed: %v", err)
+	}
+
+	// 验证值存在
+	var result string
+	found, err := s.Get(ctx, key, &result)
+	if err != nil || !found || result != value {
+		t.Fatalf("Failed to get ttl_key")
+	}
+
+	// 等待过期
+	mr.FastForward(time.Second * 2)
+
+	// 验证值已过期
+	found, err = s.Get(ctx, key, &result)
+	if err != nil {
+		t.Fatalf("Get failed: %v", err)
+	}
+	if found {
+		t.Fatalf("Expected ttl_key to be expired")
+	}
 }
 
 // TestRedisStoreSpecific 测试RedisStore的特定功能
